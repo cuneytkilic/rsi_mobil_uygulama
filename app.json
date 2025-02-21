@@ -1,0 +1,29 @@
+{
+  "expo": {
+    "name": "v5",
+    "slug": "v5",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/app_logo.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/app_logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app_logo.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.cuneytk.v5"
+    },
+    "web": {
+      "favicon": "./assets/app_logo.png"
+    }
+  }
+}

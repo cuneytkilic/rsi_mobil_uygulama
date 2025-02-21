@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "692809262606",
+    "project_id": "rsidb-4a5f7",
+    "storage_bucket": "rsidb-4a5f7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:692809262606:android:0a20d3a9503b1cb64b3e5f",
+        "android_client_info": {
+          "package_name": "com.cuneytk.v5"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5J6PkQKDc2hDb9iYMC8lUimVpCfEoxgI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
