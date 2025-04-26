@@ -1,10 +1,12 @@
-import React, { useState, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, Modal, TouchableOpacity, Pressable } from 'react-native';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Modal, TouchableOpacity, Pressable, Image } from 'react-native';
 import { DataContext } from './DataContext';
 import Icon from 'react-native-vector-icons/Ionicons';
+import I18n from "./translations";
 
 const SecondScreen = () => {
   const { analizData } = useContext(DataContext);
+
 
   const [sortedData, setSortedData] = useState(analizData);
   const [sortColumn, setSortColumn] = useState(null);
@@ -12,11 +14,15 @@ const SecondScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
 
+  useEffect(() => {
+    setSortedData(analizData);
+  }, [analizData]);
+
   const sortByColumn = (column) => {
     const newOrder = sortColumn === column && sortOrder === 'asc' ? 'desc' : 'asc';
     const sorted = [...sortedData].sort((a, b) => {
-      if (a[column] < b[column]) return newOrder === 'asc' ? -1 : 1;
-      if (a[column] > b[column]) return newOrder === 'asc' ? 1 : -1;
+      if (a[column] < b[column]) return newOrder === 'desc' ? -1 : 1;
+      if (a[column] > b[column]) return newOrder === 'desc' ? 1 : -1;
       return 0;
     });
 
@@ -36,8 +42,8 @@ const SecondScreen = () => {
           setModalVisible(true);
         }}
       >
-        <Text style={styles.tableCell}>{item.rank}</Text>
-        <Text style={styles.tableCell}>{item.coin_name.slice(0, -4)}</Text>
+        <Text style={[styles.tableCell, {flex:0.6, paddingTop: 2}]}>{item.sinyal_zamani <= 24 ? <Image source={require('./assets/new.png')} style={styles.newImage} /> : ""}</Text>
+        <Text style={[styles.tableCell, { textAlign: 'left' }]}>{item.coin_name.slice(0, -4)}</Text>
         <Text style={styles.tableCell}>{item.rsi}</Text>
         <Text style={styles.tableCell}>{item.atr}</Text>
         <Text style={styles.tableCell}>{item.degisim}</Text>
@@ -47,36 +53,43 @@ const SecondScreen = () => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={{ color: 'white', fontWeight: '600', fontSize: 20 }}>{I18n.t('signalList')}</Text>
+      </View>
+
       <FlatList
         data={sortedData}
         renderItem={renderItem}
         keyExtractor={(item) => item.rank.toString()}
         ListHeaderComponent={
           <View style={styles.tableHeader}>
-            <TouchableOpacity style={styles.headerCell} onPress={() => sortByColumn('rank')}>
-              <Text>Rank</Text>
+            <TouchableOpacity style={[styles.headerCell, {flex:0.6}]} onPress={() => sortByColumn('rank')}>
+              <Text style={styles.headerText}></Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.headerCell} onPress={() => sortByColumn('coin_name')}>
-              <Text>Coin</Text>
+            <TouchableOpacity style={[styles.headerCell, { alignItems: 'flex-start' }]} onPress={() => sortByColumn('coin_name')}>
+              <Text style={styles.headerText}>Coin</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerCell} onPress={() => sortByColumn('rsi')}>
-              <Text>RSI</Text>
+              <Text style={styles.headerText}>RSI</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerCell} onPress={() => sortByColumn('atr')}>
               <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <Text>ATR</Text>
-                <Text>(%)</Text>
+                <Text style={styles.headerText}>ATR</Text>
+                <Text style={styles.headerText}>(%)</Text>
               </View>
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerCell} onPress={() => sortByColumn('degisim')}>
               <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-                <Text>Değişim</Text>
-                <Text>(%)</Text>
+                <Text style={styles.headerText}>Değişim</Text>
+                <Text style={styles.headerText}>(%)</Text>
               </View>
             </TouchableOpacity>
           </View>
         }
         stickyHeaderIndices={[0]}
+        contentContainerStyle={{ paddingBottom: 60 }}
+        style={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
       />
 
       <Modal
@@ -86,11 +99,12 @@ const SecondScreen = () => {
         onRequestClose={() => setModalVisible(false)}
       >
         <Pressable style={styles.modalContainer} onPress={() => setModalVisible(false)}>
-          <Pressable style={styles.modalContent} onPress={() => {}}>
+          <Pressable style={styles.modalContent} onPress={() => { }}>
             {selectedItem && (
               <>
                 <Text style={styles.modalTitle}>#{selectedItem.rank} - {selectedItem.coin_name}</Text>
-                <Text>Signal Date: {selectedItem.signal_date} - {selectedItem.signal_time}</Text>
+                <Text>Signal Date: {selectedItem.signal_date}  {selectedItem.signal_time}</Text>
+                <Text>ATR at first signal: {selectedItem.first_atr}</Text>
                 <Text>Signal Price: {selectedItem.entryPrice}</Text>
                 <Text>Last Price: {selectedItem.lastPrice}</Text>
               </>
@@ -112,7 +126,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
-    padding: 10,
   },
   tableHeader: {
     flexDirection: 'row',
@@ -122,11 +135,21 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     alignItems: 'center',
   },
+  header: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+    backgroundColor: '#113b4b',
+    borderRadius: 5,
+  },
   headerCell: {
     flex: 1,
     textAlign: 'center',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  headerText: {
+    fontWeight: 'bold',
   },
   tableRow: {
     flexDirection: 'row',
@@ -137,6 +160,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#ddd',
     alignItems: 'center',
+    justifyContent: 'center'
   },
   tableCell: {
     flex: 1,
@@ -169,6 +193,10 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  newImage: {
+    width: 40, // Resmin genişliği
+    height: 15, // Resmin yüksekliği
   },
 });
 

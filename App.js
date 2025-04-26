@@ -3,34 +3,46 @@ import { View, Text, TextInput, FlatList, StyleSheet, TouchableOpacity, Image, S
 import axios from 'axios';
 import { format } from 'date-fns'; // For date formatting
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Icon from 'react-native-vector-icons/Ionicons'; // Arama ikonu için eklendi
+import Icon from 'react-native-vector-icons/Ionicons';
 import * as RNLocalize from "react-native-localize";
 import I18n from "./translations";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import SecondScreen from './SecondScreen';
 import HistoryScreen from './HistoryScreen';
 import { DataProvider, DataContext } from './DataContext'; // Yeni eklenen import
+import { MaterialIcons } from '@expo/vector-icons'; // Yüzer buton için ikon
+import analytics from '@react-native-firebase/analytics';
+import firebase from '@react-native-firebase/app'; // Firebase başlatma için import ediyoruz
+
+// Firebase konfigürasyonu
+const firebaseConfig = {
+  apiKey: "AIzaSyD5J6PkQKDc2hDb9iYMC8lUimVpCfEoxgI",  // apiKey burada
+  authDomain: "rsidb-4a5f7.firebaseapp.com",  // authDomain Firebase projeniz için oluşturulmuş bir alan adı
+  databaseURL: "https://rsidb-4a5f7.firebaseio.com",  // Firebase Realtime Database URL
+  projectId: "rsidb-4a5f7",  // Proje ID
+  storageBucket: "rsidb-4a5f7.appspot.com",  // Firebase Storage Bucket
+  messagingSenderId: "692809262606",  // Messaging Sender ID
+  appId: "1:692809262606:android:0a20d3a9503b1cb64b3e5f",  // App ID
+  measurementId: "G-QSYK3PE7FL"  // Measurement ID (Google Analytics için)
+};
+
+// Firebase'i başlatıyoruz
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);  // Firebase app başlatılıyor
+} else {
+  firebase.app();  // Firebase zaten başlatıldıysa mevcut app kullanılıyor
+}
 
 // Global olarak yazı tipini ayarla
 Text.defaultProps = Text.defaultProps || {};
 Text.defaultProps.style = { fontFamily: 'sans-serif' };
 
 const Stack = createNativeStackNavigator();
-
-// History butonu (SecondScreen'den gelen veriyi HistoryScreen'e aktaracak)
-const CustomHistoryButton = ({ navigation, history_data }) => {
-  return (
-    <TouchableOpacity
-      style={{ padding: 15 }}
-      onPress={() => navigation.navigate('HistoryScreen', { history_data })}
-    >
-      <Text style={{ color: '#fff', fontSize: 16 }}>History</Text>
-    </TouchableOpacity>
-  );
-};
+const Tab = createBottomTabNavigator();
 
 const MainScreen = () => {
   const navigation = useNavigation();
@@ -106,6 +118,16 @@ const MainScreen = () => {
       }
     }
   }, []);
+
+  // Google Analystics ile aktif kullanıcı takibi
+  useEffect(() => {
+    // Uygulama açıldığında 'app_open' event'ini logla
+    analytics().logEvent('app_open');
+  
+    // Analytics debug mode aktifleştir
+    analytics().setAnalyticsCollectionEnabled(true);
+  }, []);
+  
 
   // Cihaz dilini çekerek, uygulama dili ayarlanıyor.
   useEffect(() => {
@@ -301,7 +323,7 @@ const MainScreen = () => {
         <Text style={styles.favoriteIcon}>{favorites.includes(item.coin_name) ? '★' : '☆'}</Text>
       </TouchableOpacity>
       <View style={styles.tableCell}>
-        <Text style={{ fontWeight: item.rank === null ? 'normal' : (item.rank < 100 ? 'bold' : item.rank < 200 ? '600' : 'normal') }}>
+        <Text style={{ fontWeight: item.rank > 0 && item.rank < 200 ? '600' : 'normal' }}>
           {item.coin_name} {item.rank == null ? null : '#' + item.rank}
         </Text>
       </View>
@@ -314,7 +336,7 @@ const MainScreen = () => {
           ) : (
             <Image source={require('./assets/equal.png')} style={{ width: 15, height: 15 }} />
           )}
-          <Text style={{ fontWeight: item.rank === null ? 'normal' : (item.rank < 100 ? 'bold' : item.rank < 200 ? '600' : 'normal') }}> {item.rsi}</Text>
+          <Text style={{ fontWeight: item.rank > 0 && item.rank < 200 ? '600' : 'normal' }}> {item.rsi}</Text>
         </View>
       </View>
       <View style={styles.tableCell_v2}>
@@ -326,7 +348,7 @@ const MainScreen = () => {
           ) : (
             <Image source={require('./assets/equal.png')} style={{ width: 15, height: 15 }} />
           )}
-          <Text style={{ fontWeight: item.rank === null ? 'normal' : (item.rank < 100 ? 'bold' : item.rank < 200 ? '600' : 'normal') }}> {item.atr_degisim}</Text>
+          <Text style={{ fontWeight: item.rank > 0 && item.rank < 200 ? '600' : 'normal' }}> {item.atr_degisim}</Text>
         </View>
       </View>
     </View>
@@ -382,14 +404,8 @@ const MainScreen = () => {
             onChangeText={handleSearch}
           />
         </View>
-        <TouchableOpacity
-          style={styles.nextPageButton}
-          onPress={() => navigation.navigate('SecondScreen', { analiz_data:analiz_data, history_data:history_data })}
-        >
-          <Text>Signal List</Text>
-          <Icon style={{ paddingLeft: 10 }} name="arrow-forward" size={30} color="#113b4b" />
-        </TouchableOpacity>
       </View>
+
 
       <FlatList
         data={filteredData}
@@ -405,8 +421,82 @@ const MainScreen = () => {
         stickyHeaderIndices={[0]}
       />
 
-      <Text style={styles.footerText}><Text style={{ fontWeight: 'bold' }}>Binance Futures</Text>, {I18n.t('footerText')}</Text>
     </GestureHandlerRootView>
+  );
+};
+
+const TabNavigator = () => {
+  const { analizData } = useContext(DataContext);
+  
+  return (
+    <Tab.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#113b4b',
+          borderTopWidth: 0,
+          elevation: 0,
+          position: 'absolute',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          height: 60,
+        },
+        tabBarLabelStyle: {
+          fontSize: 14,
+        },
+        tabBarActiveTintColor: '#fff',
+        tabBarInactiveTintColor: '#b0b0b0',
+      }}
+    >
+      
+      <Tab.Screen
+        name="Home"
+        component={MainScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Icon name="home" size={focused ? 26 : 20} color={color} />
+          ),
+          tabBarLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? '#fff' : '#b0b0b0', fontSize: focused ? 14 : 12, fontWeight: focused ? 'bold' : 'normal' }}>
+              {I18n.t('home')}
+            </Text>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Signal List"
+        component={SecondScreen}
+        options={{
+          tabBarBadge: analizData.length > 0 ? analizData.length : null,
+          tabBarBadgeStyle: { fontSize: 10, backgroundColor: 'orange', color: 'black', position: 'absolute', left: 20, minWidth: 25, zIndex: 1 },
+          tabBarIcon: ({ color, focused }) => (
+            <Icon name="list" size={focused ? 26 : 20} color={color} />
+          ),
+          tabBarLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? '#fff' : '#b0b0b0', fontSize: focused ? 14 : 12, fontWeight: focused ? 'bold' : 'normal' }}>
+              {I18n.t('signalList')}
+            </Text>
+          ),
+        }}
+      />
+
+      <Tab.Screen
+        name="Signal History"
+        component={HistoryScreen}
+        options={{
+          tabBarIcon: ({ color, focused }) => (
+            <Icon name="time" size={focused ? 26 : 20} color={color} />
+          ),
+          tabBarLabel: ({ color, focused }) => (
+            <Text style={{ color: focused ? '#fff' : '#b0b0b0', fontSize: focused ? 14 : 12, fontWeight: focused ? 'bold' : 'normal' }}>
+              {I18n.t('signalHistory')}
+            </Text>
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 };
 
@@ -414,33 +504,8 @@ const App = () => {
   return (
     <DataProvider>
       <NavigationContainer>
-        <Stack.Navigator>
-          <Stack.Screen name="MainScreen" component={MainScreen} options={{ headerShown: false }} />
-          <Stack.Screen
-            name="SecondScreen"
-            component={SecondScreen}
-            options={({ navigation }) => ({
-              title: 'Signal List',
-              headerTitleAlign: 'center',
-              headerStyle: { backgroundColor: '#113b4b' },
-              headerTintColor: '#fff',
-              headerRight: () => (
-                <CustomHistoryButton 
-                  navigation={navigation} 
-                />
-              ),
-            })}
-          />
-          <Stack.Screen
-            name="HistoryScreen"
-            component={HistoryScreen}
-            options={{
-              title: 'Signal History',
-              headerTitleAlign: 'center',
-              headerStyle: { backgroundColor: '#113b4b' },
-              headerTintColor: '#fff',
-            }}
-          />
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="bottom_tab_navigator" component={TabNavigator} />
         </Stack.Navigator>
       </NavigationContainer>
     </DataProvider>
@@ -455,17 +520,17 @@ const styles = StyleSheet.create({
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 5,
-    marginBottom: 15,
+    marginHorizontal: 10,
+    marginBottom: 5,
   },
   searchBarContainer: {
-    flex: 0.7,
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#ccc',
     borderRadius: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     backgroundColor: '#fff',
   },
   searchIcon: {
@@ -614,22 +679,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#888',
     textAlign: 'center',
-    paddingTop: 5,
   },
   sheetContent: {
     padding: 16,
-  },
-  nextPageButton: {
-    flex: 0.3,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 10,
-    padding: 10,
-    backgroundColor: '#fff',
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: '#ccc',
   },
 });
 

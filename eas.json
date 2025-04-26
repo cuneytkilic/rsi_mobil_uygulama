@@ -1,10 +1,9 @@
 {
-    "build": {
+  "build": {
+    "production": {
       "android": {
-        "release": {
-          "buildType": "apk"
-        }
+        "buildType": "app-bundle"
       }
     }
   }
-  
+}
